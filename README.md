@@ -82,7 +82,7 @@ Construye la imagen Docker de la aplicación Rust:
 docker build --tag $(minikube ip):5000/hello-world-rust .
 ```
 
-Este comando construye una imagen Docker y la etiqueta con la dirección IP de Minikube y el nombre `hello-world-rust`.
+Este comando construye una imagen Docker y la etiqueta con la dirección IP de Minikube y el nombre.
 
 ### 2. Aplicar las configuraciones de despliegue y servicio
 
