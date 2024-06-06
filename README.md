@@ -25,7 +25,7 @@ minikube start
 Ejecuta el siguiente comando para que Docker use el daemon de Docker de Minikube:
 
 ```sh
-eval $(minikube docker-env)
+minikube docker-env
 ```
 
 ### 3. Obtener la dirección IP de Minikube y reemplazarla en el archivo `deployment.yaml`
