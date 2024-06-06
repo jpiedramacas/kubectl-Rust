@@ -1,6 +1,7 @@
 # Rust on Kubernetes with Minikube
 
 Este repositorio proporciona una guía detallada sobre cómo desplegar y escalar una aplicación Rust en Kubernetes usando Minikube. A continuación, se explica cada paso, comando y archivo necesario para lograrlo.
+[INSTRUCCIONES](https://github.com/jpiedramacas/kubectl-rust/blob/main/code_test.md)
 
 ## Estructura del Repositorio
 
