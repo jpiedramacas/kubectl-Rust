@@ -1,14 +1,26 @@
 # Rust on Kubernetes with Minikube
 
-Este repositorio proporciona una guía detallada sobre cómo desplegar y escalar una aplicación Rust en Kubernetes usando Minikube. A continuación, se explica cada paso, comando y código necesario para lograrlo.
+Este repositorio proporciona una guía detallada sobre cómo desplegar y escalar una aplicación Rust en Kubernetes usando Minikube. A continuación, se explica cada paso, comando y archivo necesario para lograrlo.
+
+## Estructura del Repositorio
+
+- `.github/workflows`: Contiene los flujos de trabajo de GitHub Actions.
+- `src`: Directorio de código fuente de la aplicación Rust.
+- `Cargo.toml`: Archivo de configuración de Rust, especifica las dependencias y la configuración del proyecto.
+- `Dockerfile`: Define cómo construir la imagen Docker de la aplicación.
+- `README.md`: Este archivo, contiene la documentación del proyecto.
+- `deployment.yaml`: Configuración del despliegue de Kubernetes.
+- `hpa.yaml`: Configuración del Autoscaler Horizontal de Pods.
+- `load-generator.yaml`: Configuración del generador de carga.
+- `service.yaml`: Configuración del servicio de Kubernetes.
 
 ## Prerrequisitos
 
 Antes de comenzar, asegúrate de tener instalados los siguientes componentes en tu entorno de desarrollo:
 
-- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
-- [Docker](https://docs.docker.com/get-docker/)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/): Herramienta que permite ejecutar un clúster de Kubernetes localmente.
+- [Docker](https://docs.docker.com/get-docker/): Plataforma para desarrollar, enviar y ejecutar aplicaciones dentro de contenedores.
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/): Herramienta de línea de comandos para interactuar con clústeres de Kubernetes.
 
 ## Configuración
 
@@ -20,12 +32,23 @@ Para iniciar un clúster de Minikube, utiliza el siguiente comando:
 minikube start
 ```
 
+Este comando inicializa un clúster de Kubernetes en tu máquina local usando Minikube.
+
 ### 2. Configurar el entorno de Docker para usar el daemon de Docker de Minikube
 
-Ejecuta el siguiente comando para que Docker use el daemon de Docker de Minikube:
+Para configurar Docker para que use el daemon de Docker que Minikube está utilizando, ejecuta el siguiente comando:
 
 ```sh
 minikube docker-env
+```
+
+Para Windows PowerShell, configura manualmente las variables de entorno proporcionadas por el comando anterior. Copia y pega los comandos generados por `minikube docker-env`:
+
+```ps1
+$Env:DOCKER_TLS_VERIFY = "1"
+$Env:DOCKER_HOST = "tcp://<MINIKUBE_IP>:2376"
+$Env:DOCKER_CERT_PATH = "C:\Users\CursosTardes\.minikube\certs"
+$Env:MINIKUBE_ACTIVE_DOCKERD = "minikube"
 ```
 
 ### 3. Obtener la dirección IP de Minikube y reemplazarla en el archivo `deployment.yaml`
@@ -36,7 +59,7 @@ Para obtener la dirección IP de Minikube, utiliza:
 minikube ip
 ```
 
-Luego, reemplaza la dirección IP en la línea 17 del archivo `deployment.yaml`.
+Luego, reemplaza la dirección IP en la línea 17 del archivo `deployment.yaml` con la IP obtenida.
 
 ### 4. Habilitar el servidor de métricas en Minikube
 
@@ -45,6 +68,8 @@ Para habilitar el servidor de métricas, ejecuta:
 ```sh
 minikube addons enable metrics-server
 ```
+
+Este comando habilita el servidor de métricas en Minikube, necesario para el autoscaling basado en la utilización de recursos.
 
 ## Construcción y Despliegue
 
@@ -56,6 +81,8 @@ Construye la imagen Docker de la aplicación Rust:
 docker build --tag $(minikube ip):5000/hello-world-rust .
 ```
 
+Este comando construye una imagen Docker y la etiqueta con la dirección IP de Minikube y el nombre `hello-world-rust`.
+
 ### 2. Aplicar las configuraciones de despliegue y servicio
 
 Despliega la aplicación y el servicio en el clúster de Kubernetes:
@@ -64,6 +91,9 @@ Despliega la aplicación y el servicio en el clúster de Kubernetes:
 kubectl apply -f deployment.yaml
 kubectl apply -f service.yaml
 ```
+
+- `deployment.yaml`: Define la configuración del despliegue de la aplicación en Kubernetes, incluyendo el número de réplicas y la imagen Docker a usar.
+- `service.yaml`: Define el servicio de Kubernetes que expone la aplicación desplegada, permitiendo el acceso desde fuera del clúster.
 
 ## Escalado
 
@@ -75,6 +105,8 @@ Aplica la configuración de HPA para habilitar el escalado automático basado en
 kubectl apply -f hpa.yaml
 ```
 
+- `hpa.yaml`: Define el Autoscaler Horizontal de Pods, que automáticamente escala la cantidad de réplicas de la aplicación basada en la utilización de CPU.
+
 ## Pruebas de Carga
 
 ### Aplicar el despliegue del generador de carga
@@ -84,6 +116,8 @@ Para generar carga en la aplicación y probar el escalado automático, aplica la
 ```sh
 kubectl apply -f load-generator.yaml
 ```
+
+- `load-generator.yaml`: Despliega un generador de carga que envía solicitudes a la aplicación para simular tráfico y probar el escalado.
 
 ## Monitoreo
 
@@ -133,17 +167,5 @@ jobs:
     - name: Test the Docker image
       run: docker build . --file Dockerfile --tag hello-world-rust && docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hello-world-rust:latest
 ```
-
-## Estructura del Repositorio
-
-- `.github/workflows`: Contiene los flujos de trabajo de GitHub Actions.
-- `src`: Directorio de código fuente de la aplicación Rust.
-- `Cargo.toml`: Archivo de configuración de Rust.
-- `Dockerfile`: Define cómo construir la imagen Docker de la aplicación.
-- `README.md`: Este archivo, contiene la documentación del proyecto.
-- `deployment.yaml`: Configuración del despliegue de Kubernetes.
-- `hpa.yaml`: Configuración del Autoscaler Horizontal de Pods.
-- `load-generator.yaml`: Configuración del generador de carga.
-- `service.yaml`: Configuración del servicio de Kubernetes.
 
 Este README proporciona una guía completa y detallada para desplegar y escalar una aplicación Rust en Kubernetes utilizando Minikube, asegurando que los desarrolladores puedan seguir cada paso de manera eficiente y efectiva.
