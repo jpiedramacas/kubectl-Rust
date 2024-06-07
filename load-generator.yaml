@@ -20,4 +20,3 @@ spec:
         - -c
         - "while sleep 0.01; do wget -q -O- http://hello-world-service; done"
       restartPolicy: Always
-
