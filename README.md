@@ -23,40 +23,43 @@ Antes de comenzar, asegúrate de tener instalados los siguientes componentes en 
 - [Docker](https://docs.docker.com/get-docker/): Plataforma para desarrollar, enviar y ejecutar aplicaciones dentro de contenedores.
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/): Herramienta de línea de comandos para interactuar con clústeres de Kubernetes.
 
+
 ## Configuración
 
 ### 1. Iniciar el clúster de Minikube
 
 Para iniciar un clúster de Minikube, utiliza el siguiente comando:
 
-```sh
+```bash
 minikube start
 ```
 
-Este comando inicializa un clúster de Kubernetes en tu máquina local usando Minikube.
+Este comando inicializa un clúster de Kubernetes en tu máquina local usando Minikube. Si es la primera vez que ejecutas este comando, Minikube descargará una máquina virtual y configurará Kubernetes en ella.
 
 ### 2. Configurar el entorno de Docker para usar el daemon de Docker de Minikube
 
 Para configurar Docker para que use el daemon de Docker que Minikube está utilizando, ejecuta el siguiente comando:
 
-```sh
+```bash
 minikube docker-env
 ```
 
+Este comando imprime una serie de variables de entorno que configuran Docker para que use el daemon de Docker dentro de Minikube.
+
 Para Windows PowerShell, configura manualmente las variables de entorno proporcionadas por el comando anterior. Copia y pega los comandos generados por `minikube docker-env`:
 
-```ps1
+```powershell
 $Env:DOCKER_TLS_VERIFY = "1"
 $Env:DOCKER_HOST = "tcp://<MINIKUBE_IP>:2376"
 $Env:DOCKER_CERT_PATH = "C:\Users\CursosTardes\.minikube\certs"
 $Env:MINIKUBE_ACTIVE_DOCKERD = "minikube"
 ```
 
-### 3. Obtener la dirección IP de Minikube y reemplazarla en el archivo `deployment.yaml`
+### 3. Obtener la dirección IP de Minikube y reemplazarla en el archivo deployment.yaml
 
 Para obtener la dirección IP de Minikube, utiliza:
 
-```sh
+```bash
 minikube ip
 ```
 
@@ -66,7 +69,7 @@ Luego, reemplaza la dirección IP en la línea 17 del archivo `deployment.yaml` 
 
 Para habilitar el servidor de métricas, ejecuta:
 
-```sh
+```bash
 minikube addons enable metrics-server
 ```
 
@@ -76,19 +79,19 @@ Este comando habilita el servidor de métricas en Minikube, necesario para el au
 
 ### 1. Construir la imagen Docker
 
-Construye la imagen Docker de la aplicación Rust:
+Construye la imagen Docker de la aplicación Rust con el siguiente comando:
 
-```sh
+```bash
 docker build --tag $(minikube ip):5000/hello-world-rust .
 ```
 
-Este comando construye una imagen Docker y la etiqueta con la dirección IP de Minikube y el nombre.
+Este comando construye una imagen Docker y la etiqueta con la dirección IP de Minikube y el nombre especificado.
 
 ### 2. Aplicar las configuraciones de despliegue y servicio
 
-Despliega la aplicación y el servicio en el clúster de Kubernetes:
+Despliega la aplicación y el servicio en el clúster de Kubernetes utilizando los siguientes comandos:
 
-```sh
+```bash
 kubectl apply -f deployment.yaml
 kubectl apply -f service.yaml
 ```
@@ -102,7 +105,7 @@ kubectl apply -f service.yaml
 
 Aplica la configuración de HPA para habilitar el escalado automático basado en la utilización de CPU:
 
-```sh
+```bash
 kubectl apply -f hpa.yaml
 ```
 
@@ -114,7 +117,7 @@ kubectl apply -f hpa.yaml
 
 Para generar carga en la aplicación y probar el escalado automático, aplica la configuración del generador de carga:
 
-```sh
+```bash
 kubectl apply -f load-generator.yaml
 ```
 
@@ -126,13 +129,13 @@ kubectl apply -f load-generator.yaml
 
 Monitorea el HPA para ver el incremento en la utilización de CPU y el escalado de los pods:
 
-```sh
+```bash
 kubectl get hpa hello-world-hpa --watch
 ```
 
 Espera unos minutos hasta que el Autoscaler aumente el número de pods, luego verifica el número de nuevos pods creados:
 
-```sh
+```bash
 kubectl get pods
 ```
 
@@ -140,15 +143,35 @@ kubectl get pods
 
 Una vez que las pruebas con el HPA hayan finalizado, elimina el generador de carga para reducir el número de pods:
 
-```sh
+```bash
 kubectl delete deployment load-generator
 ```
 
-## Escaneo de Vulnerabilidades con Trivy
+## Conclusión
 
-Para garantizar la seguridad de la imagen Docker, este repositorio incluye un flujo de trabajo de GitHub Actions para la integración continua de las imágenes Docker. El flujo de trabajo se activa en los `push` y `pull requests` a la rama principal. Construye la imagen Docker y la escanea en busca de vulnerabilidades utilizando el escáner de código abierto "Trivy" de Aqua Security.
+Siguiendo estos pasos, habrás configurado exitosamente un clúster de Minikube, desplegado una aplicación, habilitado el escalado automático basado en métricas y probado el sistema bajo carga. Cada comando y archivo de configuración juega un rol crucial en el correcto funcionamiento del clúster y la aplicación desplegada.
 
-Aquí está la configuración del flujo de trabajo ubicada en `.github/workflows/docker-image.yaml`:
+
+
+# Escaneo de Vulnerabilidades con Trivy en GitHub Actions
+
+Este documento proporciona una guía detallada para configurar un flujo de trabajo de GitHub Actions que construye una imagen Docker y la escanea en busca de vulnerabilidades utilizando Trivy, un escáner de seguridad de código abierto de Aqua Security.
+
+## Requisitos Previos
+
+- Cuenta en GitHub y un repositorio con los archivos de configuración necesarios.
+- Dockerfile presente en el repositorio.
+- Conocimiento básico de YAML y GitHub Actions.
+
+## Configuración del Flujo de Trabajo
+
+### 1. Crear el Archivo de Flujo de Trabajo
+
+El archivo de flujo de trabajo de GitHub Actions debe ubicarse en el directorio `.github/workflows/` dentro de tu repositorio. Crea un archivo llamado `docker-image.yaml` en esa ubicación.
+
+### 2. Configurar el Flujo de Trabajo
+
+Aquí está la configuración completa del flujo de trabajo `docker-image.yaml`:
 
 ```yaml
 name: Docker Image CI
@@ -164,9 +187,66 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Test the Docker image
-      run: docker build . --file Dockerfile --tag hello-world-rust && docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hello-world-rust:latest
+    - name: Check out the repository
+      uses: actions/checkout@v4
+
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag hello-world-rust
+
+    - name: Scan the Docker image for vulnerabilities
+      run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hello-world-rust:latest
 ```
 
-Este README proporciona una guía completa y detallada para desplegar y escalar una aplicación Rust en Kubernetes utilizando Minikube, asegurando que los desarrolladores puedan seguir cada paso de manera eficiente y efectiva.
+### Explicación de la Configuración
+
+#### `name: Docker Image CI`
+
+Este es el nombre del flujo de trabajo. Puedes personalizarlo según tus necesidades.
+
+#### `on`
+
+Define los eventos que activarán el flujo de trabajo. En este caso, el flujo de trabajo se activa en:
+
+- `push` a la rama principal (`main`).
+- `pull_request` hacia la rama principal (`main`).
+
+#### `jobs`
+
+Define los trabajos que se ejecutarán como parte del flujo de trabajo. Aquí tenemos un solo trabajo llamado `test`.
+
+#### `runs-on: ubuntu-latest`
+
+Especifica el sistema operativo en el que se ejecutará el trabajo. En este caso, se usa la última versión de Ubuntu.
+
+#### `steps`
+
+Lista las acciones individuales que componen el trabajo:
+
+1. **Check out the repository**: Utiliza la acción `actions/checkout@v4` para clonar el repositorio en el entorno de ejecución de GitHub Actions.
+
+    ```yaml
+    - name: Check out the repository
+      uses: actions/checkout@v4
+    ```
+
+2. **Build the Docker image**: Construye la imagen Docker utilizando el Dockerfile presente en el repositorio.
+
+    ```yaml
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag hello-world-rust
+    ```
+
+3. **Scan the Docker image for vulnerabilities**: Ejecuta Trivy para escanear la imagen Docker en busca de vulnerabilidades.
+
+    ```yaml
+    - name: Scan the Docker image for vulnerabilities
+      run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hello-world-rust:latest
+    ```
+
+    - `--rm`: Elimina el contenedor Trivy después de que finalice la ejecución.
+    - `-v /var/run/docker.sock:/var/run/docker.sock`: Monta el socket Docker dentro del contenedor Trivy para que pueda comunicarse con el daemon Docker.
+    - `aquasec/trivy image hello-world-rust:latest`: Ejecuta Trivy para escanear la imagen `hello-world-rust:latest`.
+
+## Conclusión
+
+Siguiendo estos pasos, habrás configurado un flujo de trabajo de GitHub Actions que construye una imagen Docker y la escanea en busca de vulnerabilidades utilizando Trivy. Este proceso garantiza que las imágenes Docker en tu repositorio sean seguras y libres de vulnerabilidades conocidas. Cada paso en la configuración del flujo de trabajo tiene un propósito específico y es crucial para el correcto funcionamiento de la integración continua y la seguridad de la imagen.
