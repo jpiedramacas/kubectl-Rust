@@ -41,7 +41,7 @@ Este comando inicializa un clúster de Kubernetes en tu máquina local usando Mi
 Para configurar Docker para que use el daemon de Docker que Minikube está utilizando, ejecuta el siguiente comando:
 
 ```bash
-minikube docker-env
+eval $(minikube docker-env)
 ```
 
 Este comando imprime una serie de variables de entorno que configuran Docker para que use el daemon de Docker dentro de Minikube.
