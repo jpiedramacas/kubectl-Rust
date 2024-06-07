@@ -1,157 +1,212 @@
-# Despliegue de Aplicación Rust "Hello World" en Kubernetes con Minikube
+# README.md
 
-Este proyecto tiene como objetivo desplegar una aplicación "Hello World" en Rust utilizando Docker en un clúster de Kubernetes gestionado por Minikube. Además, se puede integrar un escaneo de vulnerabilidades o escalado automático (opcional).
+## Descripción del Proyecto
 
-## Objetivo
-
-Desplegar una aplicación "Hello World" en Rust utilizando Docker en un clúster de Kubernetes gestionado por Minikube. Integrar opcionalmente el escaneo de vulnerabilidades o el autoscaling (no obligatorio).
+Este proyecto tiene como objetivo desplegar una aplicación "Hello World" escrita en Rust utilizando Docker en un clúster de Kubernetes gestionado por Minikube. Adicionalmente, se puede integrar un escaneo de vulnerabilidades o autoescalado (opcional).
 
 ## Requisitos
 
-### 1. Configurar el Clúster de Minikube
-
-- Instalar y configurar Minikube o una alternativa para simular un entorno de Kubernetes local.
-
-### 2. Despliegue de la Aplicación
-
+- Instalar y configurar Minikube para simular un entorno Kubernetes local.
 - Contenerizar y desplegar la aplicación en el clúster de Kubernetes.
+- Proveer una documentación clara con instrucciones para:
+  - Configurar un clúster de Kubernetes local (por ejemplo, con Minikube).
+  - Construir y desplegar la aplicación.
+  - Ejecutar el escaneo con SonarQube o realizar el autoescalado (opcional).
+- Implementar autoescalado basado en la utilización de CPU usando capacidades de Kubernetes (opcional).
+- Integrar SonarQube en un Github Action para escanear la imagen Docker en busca de vulnerabilidades como parte del proceso de despliegue (opcional).
 
-### 3. Documentación
+## Instrucciones
 
-Proporcionar un archivo `README.md` con instrucciones claras sobre cómo:
+### 1. Configurar Minikube
 
-- Configurar un clúster de Kubernetes local (por ejemplo, con Minikube).
-- Construir y desplegar la aplicación.
-- Ejecutar el escaneo de SonarQube o realizar el escalado automático.
+#### Instalación de Minikube
 
-### 4. Autoscaling (Opcional)
+1. **Instalar Minikube**:
 
-- Implementar autoscaling basado en la utilización de CPU utilizando las capacidades de Kubernetes.
-- Documentar cómo configurar, probar y observar el autoscaling.
+   ```sh
+   curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+   sudo install minikube-linux-amd64 /usr/local/bin/minikube
+   ```
 
-### 5. Escaneo de Vulnerabilidades con SonarQube (Opcional)
+2. **Iniciar Minikube**:
 
-- Integrar una acción de GitHub para escanear la imagen Docker en busca de vulnerabilidades como parte del proceso de despliegue.
-- Documentar el proceso de configuración y escaneo en el README.
+   ```sh
+   minikube start --driver=docker
+   ```
 
-## Criterios de Evaluación
+#### Verificación de la Instalación
 
-- **Corrección:** La aplicación debe ser correctamente desplegable y accesible en un entorno Docker local.
-- **Seguridad:** La imagen Docker debe ser escaneada en busca de vulnerabilidades críticas reportadas por SonarQube (opcional).
-- **Calidad del Código:** El código DevOps debe ser limpio, bien organizado y mantenible.
-- **Calidad de la Documentación:** La documentación debe guiar claramente los procesos de configuración, despliegue y escaneo.
+1. **Comprobar el estado del clúster**:
 
-## Instrucciones de Envío
+   ```sh
+   minikube status
+   ```
 
-- Proporcionar un enlace a un repositorio de GitHub que contenga todos los scripts de despliegue, Dockerfile(s), configuración de SonarQube y documentación.
-- Asegurarse de que todos los scripts sean ejecutables y que la documentación sea completa y fácil de seguir.
+### 2. Construir y Desplegar la Aplicación
 
-## Configuración
+#### Crear la Aplicación en Rust
 
-### 1. Iniciar el Clúster de Minikube
+1. **Instalar Rust y Cargo**:
 
-Para iniciar un clúster de Minikube, utiliza el siguiente comando:
+   ```sh
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   source $HOME/.cargo/env
+   ```
 
-```sh
-minikube start
-```
+2. **Crear un nuevo proyecto en Rust**:
 
-### 2. Configurar el Entorno de Docker para Usar el Daemon de Docker de Minikube
+   ```sh
+   cargo new hello_world
+   cd hello_world
+   ```
 
-En Windows PowerShell:
+3. **Modificar `src/main.rs`**:
 
-```ps1
-$Env:DOCKER_TLS_VERIFY = "1"
-$Env:DOCKER_HOST = "tcp://<MINIKUBE_IP>:2376"
-$Env:DOCKER_CERT_PATH = "C:\Users\TuUsuario\.minikube\certs"
-$Env:MINIKUBE_ACTIVE_DOCKERD = "minikube"
-```
+   ```rust
+   fn main() {
+       println!("Hello, world!");
+   }
+   ```
 
-### 3. Obtener la Dirección IP de Minikube
+#### Crear el Dockerfile
 
-```sh
-minikube ip
-```
+1. **Crear un `Dockerfile` en el directorio del proyecto**:
 
-Reemplaza la dirección IP en la línea 17 del archivo `deployment.yaml`.
+   ```Dockerfile
+   FROM rust:latest
 
-### 4. Habilitar el Servidor de Métricas en Minikube
+   WORKDIR /usr/src/myapp
+   COPY . .
 
-```sh
-minikube addons enable metrics-server
-```
+   RUN cargo install --path .
 
-## Construcción y Despliegue
+   CMD ["hello_world"]
+   ```
 
-### 1. Construir la Imagen Docker
+2. **Construir la imagen Docker**:
 
-```sh
-docker build --tag $(minikube ip):5000/hello-world-rust .
-```
+   ```sh
+   docker build -t hello_world .
+   ```
 
-### 2. Aplicar las Configuraciones de Despliegue y Servicio
+#### Desplegar en Kubernetes
 
-```sh
-kubectl apply -f deployment.yaml
-kubectl apply -f service.yaml
-```
+1. **Crear un archivo de despliegue `deployment.yaml`**:
 
-## Escalado Automático (Opcional)
+   ```yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: hello-world-deployment
+   spec:
+     replicas: 2
+     selector:
+       matchLabels:
+         app: hello-world
+     template:
+       metadata:
+         labels:
+           app: hello-world
+       spec:
+         containers:
+         - name: hello-world
+           image: hello_world:latest
+           ports:
+           - containerPort: 8080
+   ```
 
-### Configurar el Autoscaler Horizontal de Pods (HPA)
+2. **Aplicar el despliegue**:
 
-```sh
-kubectl apply -f hpa.yaml
-```
+   ```sh
+   kubectl apply -f deployment.yaml
+   ```
 
-### Monitorear el HPA
+3. **Crear un servicio para exponer la aplicación**:
 
-```sh
-kubectl get hpa hello-world-hpa --watch
-kubectl get pods
-```
+   ```yaml
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: hello-world-service
+   spec:
+     selector:
+       app: hello-world
+     ports:
+       - protocol: "TCP"
+         port: 80
+         targetPort: 8080
+     type: LoadBalancer
+   ```
 
-### Eliminar el Generador de Carga
+4. **Aplicar el servicio**:
 
-```sh
-kubectl delete deployment load-generator
-```
+   ```sh
+   kubectl apply -f service.yaml
+   ```
 
-## Escaneo de Vulnerabilidades con SonarQube (Opcional)
+### 3. Escaneo de Vulnerabilidades con SonarQube (Opcional)
 
-### Configuración del Flujo de Trabajo de GitHub Actions
+#### Integración con GitHub Actions
 
-En `.github/workflows/docker-image.yaml`:
+1. **Crear un workflow en `.github/workflows/sonarqube.yml`**:
 
-```yaml
-name: Docker Image CI
+   ```yaml
+   name: SonarQube Scan
 
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+   on: [push]
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+   jobs:
+     sonar:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v2
+         - name: Set up JDK 11
+           uses: actions/setup-java@v1
+           with:
+             java-version: '11'
+         - name: SonarQube Scan
+           env:
+             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+           run: |
+             sonar-scanner \
+               -Dsonar.projectKey=my_project \
+               -Dsonar.sources=. \
+               -Dsonar.host.url=https://sonarqube.example.com \
+               -Dsonar.login=$SONAR_TOKEN
+   ```
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Test the Docker image
-      run: docker build . --file Dockerfile --tag hello-world-rust && docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hello-world-rust:latest
-```
+2. **Configurar las credenciales en GitHub**: Agregar `SONAR_TOKEN` en los secretos del repositorio.
 
-## Estructura del Repositorio
+### 4. Autoescalado Basado en la Utilización de CPU (Opcional)
 
-- `.github/workflows`: Contiene los flujos de trabajo de GitHub Actions.
-- `src`: Directorio de código fuente de la aplicación Rust.
-- `Cargo.toml`: Archivo de configuración de Rust.
-- `Dockerfile`: Define cómo construir la imagen Docker de la aplicación.
-- `README.md`: Este archivo, contiene la documentación del proyecto.
-- `deployment.yaml`: Configuración del despliegue de Kubernetes.
-- `hpa.yaml`: Configuración del Autoscaler Horizontal de Pods.
-- `load-generator.yaml`: Configuración del generador de carga.
-- `service.yaml`: Configuración del servicio de Kubernetes.
+#### Configurar el Autoescalado
 
-Este README proporciona una guía completa y detallada para desplegar y escalar una aplicación Rust en Kubernetes utilizando Minikube, asegurando que los desarrolladores puedan seguir cada paso de manera eficiente y efectiva.
+1. **Crear una Horizontal Pod Autoscaler**:
+
+   ```sh
+   kubectl autoscale deployment hello-world-deployment --cpu-percent=50 --min=1 --max=10
+   ```
+
+2. **Verificar el autoescalado**:
+
+   ```sh
+   kubectl get hpa
+   ```
+
+### Observaciones y Pruebas
+
+1. **Acceder a la aplicación**:
+
+   Obtener la URL del servicio:
+
+   ```sh
+   minikube service hello-world-service --url
+   ```
+
+2. **Probar el autoescalado**:
+
+   Simular carga en la aplicación para verificar el escalado automático.
+
+### Conclusión
+
+Este README proporciona una guía paso a paso para desplegar una aplicación "Hello World" en un clúster de Kubernetes gestionado por Minikube, con opciones adicionales de escaneo de vulnerabilidades y autoescalado. Siguiendo estas instrucciones, deberías poder configurar el entorno, construir y desplegar la aplicación, y opcionalmente, mejorar la seguridad y escalabilidad del despliegue.
