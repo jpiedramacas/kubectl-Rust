@@ -93,6 +93,9 @@ Despliega la aplicación y el servicio en el clúster de Kubernetes utilizando l
 
 ```bash
 kubectl apply -f deployment.yaml
+```
+
+```bash
 kubectl apply -f service.yaml
 ```
 
@@ -145,6 +148,18 @@ Una vez que las pruebas con el HPA hayan finalizado, elimina el generador de car
 
 ```bash
 kubectl delete deployment load-generator
+```
+
+## Desplegar
+
+```bash
+kubectl get service
+minikube service hello-world-service
+```
+
+```bash
+kubectl get pods
+kubectl port-forward pod/hello-world-deployment
 ```
 
 ## Conclusión
